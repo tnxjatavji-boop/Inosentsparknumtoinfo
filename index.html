@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lookup</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --txt:#1b2233; --dim:#6b7489; --dim2:#4a5468;
+    --acc:#3a7bf0; --acc2:#5c94ff;
+    --ok:#12b981; --err:#e5484d; --warn:#e08a1e; --purple:#8b5cf6;
+    --glass:rgba(255,255,255,.35);
+    --glass-strong:rgba(255,255,255,.55);
+    --glass-line:rgba(255,255,255,.55);
+    --glass-shadow:0 4px 20px rgba(31,50,90,.08);
+    --blur:14px;
+    --radius:14px;
+  }
+  html.dark{
+    --txt:#e6ebf5; --dim:#8892a6; --dim2:#b6bfd0;
+    --acc:#6ea8ff; --acc2:#8fbcff;
+    --glass:rgba(24,30,44,.35);
+    --glass-strong:rgba(30,38,54,.5);
+    --glass-line:rgba(255,255,255,.08);
+    --glass-shadow:0 4px 20px rgba(0,0,0,.25);
+  }
+  html,body{min-height:100%}
+  body{
+    color:var(--txt);
+    font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+    min-height:100vh; padding:16px 12px 60px;
+    -webkit-tap-highlight-color:transparent;
+    position:relative; overflow-x:hidden;
+    transition:color .3s;
+  }
+  .bg{
+    position:fixed;inset:0;z-index:-2;
+    background:
+      radial-gradient(1200px 800px at 10% 0%, #cfe0ff 0%, transparent 55%),
+      radial-gradient(1000px 700px at 90% 10%, #ffe0f0 0%, transparent 50%),
+      radial-gradient(900px 900px at 50% 100%, #d8fff0 0%, transparent 55%),
+      linear-gradient(160deg,#eef3fb 0%,#f7f0ff 45%,#eafaf5 100%);
+  }
+  html.dark .bg{
+    background:
+      radial-gradient(1200px 800px at 10% 0%, #1a2340 0%, transparent 55%),
+      radial-gradient(1000px 700px at 90% 10%, #2a1a30 0%, transparent 50%),
+      radial-gradient(900px 900px at 50% 100%, #102a26 0%, transparent 55%),
+      linear-gradient(160deg,#0b0e14 0%,#12101a 45%,#0b1413 100%);
+  }
+  .blob{position:fixed;border-radius:50%;filter:blur(70px);opacity:.5;z-index:-1;animation:float 16s ease-in-out infinite;pointer-events:none}
+  .b1{width:340px;height:340px;background:#7fb0ff;top:-80px;left:-60px}
+  .b2{width:300px;height:300px;background:#ff9ecb;top:20%;right:-80px;animation-delay:-5s}
+  .b3{width:360px;height:360px;background:#7dffcf;bottom:-120px;left:20%;animation-delay:-9s}
+  html.dark .blob{opacity:.24}
+  @keyframes float{50%{transform:translate(20px,-30px) scale(1.08)}}
+
+  .wrap{max-width:820px;margin:0 auto;position:relative}
+
+  .bar{
+    display:flex;gap:6px;margin-bottom:14px;
+    position:sticky;top:0;z-index:5;
+    padding:4px 0;
+  }
+  .bar input{
+    flex:1;min-width:0;
+    background:var(--glass-strong);
+    backdrop-filter:blur(var(--blur)) saturate(160%);
+    -webkit-backdrop-filter:blur(var(--blur)) saturate(160%);
+    border:1px solid var(--glass-line);border-radius:11px;
+    color:var(--txt);padding:12px 14px;font-size:15px;outline:none;
+    box-shadow:var(--glass-shadow);
+    transition:border-color .18s,box-shadow .18s;
+  }
+  .bar input::placeholder{color:var(--dim);font-size:14px}
+  .bar input:focus{border-color:var(--acc);box-shadow:0 0 0 3px #3a7bf022, var(--glass-shadow)}
+  .bar button.primary{
+    padding:12px 20px;border:1px solid var(--glass-line);border-radius:11px;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));
+    color:#fff;font-weight:800;font-size:14px;cursor:pointer;
+    box-shadow:0 4px 14px #3a7bf035;transition:transform .1s,opacity .15s;
+  }
+  .bar button.primary:active{transform:scale(.96)}
+  .bar button.primary:disabled{opacity:.55;cursor:not-allowed}
+  .bar .icon{
+    width:38px;height:38px;display:grid;place-items:center;flex-shrink:0;
+    background:var(--glass-strong);border:1px solid var(--glass-line);
+    border-radius:11px;color:var(--dim2);cursor:pointer;transition:all .18s;font-size:13px;
+    backdrop-filter:blur(8px);
+  }
+  .bar .icon:hover{color:var(--acc);border-color:var(--acc)}
+
+  .wm{
+    display:flex;justify-content:flex-end;margin-bottom:8px;
+  }
+  .wm a{
+    font-size:11px;font-weight:700;letter-spacing:.3px;
+    color:var(--acc);text-decoration:none;
+    padding:5px 10px;border-radius:999px;
+    background:var(--glass);border:1px solid var(--glass-line);
+    backdrop-filter:blur(6px);
+    transition:all .15s;
+    opacity:.85;
+  }
+  .wm a:hover{opacity:1;border-color:var(--acc);box-shadow:0 0 0 3px #3a7bf018}
+
+  .status{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+  .status:empty{display:none}
+  .st{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:10px;font-weight:700;letter-spacing:.4px;
+    padding:3px 8px;border-radius:999px;
+    background:var(--glass);border:1px solid var(--glass-line);
+    color:var(--dim);backdrop-filter:blur(6px);
+  }
+  .st .sdot{width:5px;height:5px;border-radius:50%;background:var(--dim)}
+  .st.loading .sdot{background:var(--warn);animation:pulse 1s infinite}
+  .st.ok .sdot{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+  .st.ok{color:var(--ok)}
+  .st.err .sdot{background:var(--err)}
+  .st.err{color:var(--err)}
+  @keyframes pulse{50%{opacity:.35}}
+
+  .hist{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .hist:empty{display:none}
+  .chip{
+    font-size:11px;padding:4px 9px;border-radius:999px;
+    background:var(--glass);backdrop-filter:blur(6px);
+    border:1px solid var(--glass-line);color:var(--dim2);cursor:pointer;
+    transition:all .15s;display:inline-flex;align-items:center;gap:4px;font-weight:600;
+  }
+  .chip:hover{color:var(--txt);border-color:var(--acc)}
+
+  .sec-head{display:flex;align-items:center;gap:8px;margin-top:20px;margin-bottom:10px}
+  .sec-head:first-child{margin-top:0}
+  .sec-head .sec-badge{
+    font-size:9px;font-weight:800;letter-spacing:.6px;
+    padding:3px 8px;border-radius:5px;color:#fff;
+  }
+  .sec-badge.number{background:linear-gradient(135deg,var(--acc),var(--acc2))}
+  .sec-badge.aadhaar{background:linear-gradient(135deg,var(--warn),#f0a84c)}
+  .sec-badge.truecaller{background:linear-gradient(135deg,var(--purple),#a78bfa)}
+  .sec-head .sec-title{font-size:12px;font-weight:700;color:var(--dim);flex:1}
+  .sec-head .sec-count{font-size:10px;color:var(--dim);font-weight:600;opacity:.7}
+
+  .rec{
+    margin-bottom:10px;padding:12px 14px;
+    background:var(--glass);backdrop-filter:blur(var(--blur)) saturate(160%);
+    -webkit-backdrop-filter:blur(var(--blur)) saturate(160%);
+    border:1px solid var(--glass-line);border-radius:var(--radius);
+    box-shadow:var(--glass-shadow);
+    transition:border-color .15s;
+  }
+  .rec:hover{border-color:var(--acc)}
+  .rec.aadhaar:hover{border-color:var(--warn)}
+  .rec.tc:hover{border-color:var(--purple)}
+
+  .rec .name{
+    font-size:14px;font-weight:800;margin-bottom:8px;
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+  }
+  .name-l{display:flex;align-items:center;gap:6px;min-width:0}
+  .name-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .name-r{display:flex;gap:5px;flex-shrink:0}
+
+  .rec .line{
+    color:var(--dim2);font-size:13px;margin:4px 0;
+    display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap;
+  }
+  .rec .line .k{color:var(--dim);display:inline-block;min-width:70px;font-weight:500;flex-shrink:0;opacity:.75}
+  .rec .line .v{color:var(--txt);flex:1;min-width:0}
+  .rec .line .v.mono{font-family:Consolas,monospace;font-size:12px}
+  .rec .line .v.na{color:var(--err);font-style:italic;opacity:.6}
+
+  mark{
+    background:#3a7bf018;color:var(--txt);padding:1px 6px;border-radius:4px;
+    border:1px solid #3a7bf028;font-weight:600;
+  }
+  mark.mono{font-family:Consolas,monospace;font-size:12px}
+  mark.aadhaar-hl{background:#e08a1e18;border-color:#e08a1e28}
+  mark.tc-hl{background:#8b5cf618;border-color:#8b5cf628}
+
+  .kv{
+    color:var(--dim2);font-size:13px;margin:4px 0;
+    display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap;
+  }
+  .kv .k{color:var(--dim);font-weight:500;min-width:100px;flex-shrink:0;opacity:.75}
+  .kv .v{color:var(--txt);flex:1;min-width:0;word-break:break-word}
+  .kv .v.mono{font-family:Consolas,monospace;font-size:12px}
+  .kv .v.na{color:var(--err);font-style:italic;opacity:.6}
+
+  .cp{
+    border:1px solid var(--glass-line);background:var(--glass-strong);
+    color:var(--dim);font-size:10px;padding:3px 8px;border-radius:6px;
+    cursor:pointer;transition:all .15s;flex-shrink:0;font-weight:600;
+    opacity:.7;
+  }
+  .cp:hover{color:var(--txt);border-color:var(--acc);opacity:1}
+  .cp.done{color:var(--ok);border-color:var(--ok);opacity:1}
+
+  .aadhaar-chain{
+    display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;
+    border-top:1px dashed var(--glass-line);flex-wrap:wrap;
+  }
+  .aadhaar-chain button{
+    font-size:10px;padding:3px 9px;border-radius:999px;border:1px solid var(--glass-line);
+    background:var(--glass-strong);color:var(--acc);cursor:pointer;font-weight:700;
+    transition:all .15s;opacity:.85;
+  }
+  .aadhaar-chain button:hover{background:var(--acc);color:#fff;border-color:var(--acc);opacity:1}
+  .aadhaar-chain button.chain-aadhaar{color:var(--warn)}
+  .aadhaar-chain button.chain-aadhaar:hover{background:var(--warn);color:#fff;border-color:var(--warn)}
+  .aadhaar-chain button.chain-tc{color:var(--purple)}
+  .aadhaar-chain button.chain-tc:hover{background:var(--purple);color:#fff;border-color:var(--purple)}
+
+  .fam{
+    margin-bottom:8px;padding:10px 12px;
+    background:var(--glass);backdrop-filter:blur(var(--blur));
+    border:1px solid var(--glass-line);border-radius:10px;
+    box-shadow:var(--glass-shadow);
+  }
+  .fam .name{font-size:13px;font-weight:700;margin-bottom:4px}
+  .fam .line{color:var(--dim2);font-size:12px;margin:2px 0}
+  .fam .line .k{color:var(--dim);font-weight:500;opacity:.75}
+  .head-tag{color:var(--warn);font-size:10px;margin-left:4px;font-weight:700}
+
+  .msg{
+    color:var(--dim);padding:12px;font-size:12px;text-align:center;
+    background:var(--glass);border:1px dashed var(--glass-line);border-radius:10px;
+    opacity:.8;
+  }
+  .msg.err{color:var(--err);opacity:1}
+
+  .sk{
+    background:var(--glass);backdrop-filter:blur(var(--blur));
+    border:1px solid var(--glass-line);border-radius:var(--radius);
+    padding:12px;margin-bottom:10px;
+  }
+  .sk .ln{
+    height:10px;border-radius:5px;
+    background:linear-gradient(90deg,rgba(255,255,255,.2) 25%,rgba(255,255,255,.5) 50%,rgba(255,255,255,.2) 75%);
+    background-size:200% 100%;animation:sh 1.2s infinite;margin-bottom:7px;
+  }
+  html.dark .sk .ln{
+    background:linear-gradient(90deg,rgba(255,255,255,.06) 25%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.06) 75%);
+    background-size:200% 100%;
+  }
+  .sk .ln:nth-child(1){width:40%;height:13px}
+  .sk .ln:nth-child(2){width:70%}
+  .sk .ln:nth-child(3){width:55%}
+  @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  .spin{width:13px;height:13px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:s .7s linear infinite;display:inline-block;vertical-align:-2px}
+  @keyframes s{to{transform:rotate(360deg)}}
+
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--glass-strong);backdrop-filter:blur(20px) saturate(180%);
+    border:1px solid var(--ok);color:var(--ok);
+    padding:8px 16px;border-radius:9px;font-size:12px;font-weight:600;
+    opacity:0;pointer-events:none;transition:all .25s;z-index:100;
+    box-shadow:0 6px 20px rgba(31,50,90,.15);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.err{border-color:var(--err);color:var(--err)}
+
+  .bulk{
+    display:none;gap:6px;margin-bottom:12px;align-items:center;flex-wrap:wrap;
+    padding:10px 12px;
+    background:var(--glass);backdrop-filter:blur(var(--blur));
+    border:1px solid var(--glass-line);border-radius:11px;
+  }
+  .bulk.show{display:flex}
+  .bulk input{
+    flex:1;min-width:140px;background:var(--glass-strong);border:1px solid var(--glass-line);
+    border-radius:8px;color:var(--txt);padding:8px 10px;font-size:12px;outline:none;
+  }
+  .bulk input:focus{border-color:var(--acc)}
+  .bulk button{
+    font-size:11px;padding:8px 14px;border-radius:8px;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;
+    border:none;cursor:pointer;font-weight:700;
+  }
+
+  /* drawer */
+  .drawer-mask{
+    position:fixed;inset:0;background:rgba(10,14,22,.4);
+    backdrop-filter:blur(3px);z-index:60;opacity:0;pointer-events:none;
+    transition:opacity .2s;
+  }
+  .drawer-mask.show{opacity:1;pointer-events:auto}
+  .drawer{
+    position:fixed;top:0;right:0;bottom:0;width:min(420px,92vw);
+    background:var(--glass-strong);backdrop-filter:blur(24px) saturate(180%);
+    -webkit-backdrop-filter:blur(24px) saturate(180%);
+    border-left:1px solid var(--glass-line);
+    box-shadow:-12px 0 40px rgba(0,0,0,.25);
+    z-index:61;transform:translateX(100%);transition:transform .25s ease;
+    display:flex;flex-direction:column;
+    overflow-y:auto;
+  }
+  .drawer.show{transform:translateX(0)}
+  .drawer-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid var(--glass-line);
+    position:sticky;top:0;background:var(--glass-strong);backdrop-filter:blur(20px);
+    z-index:2;
+  }
+  .drawer-head h2{font-size:13px;font-weight:800;letter-spacing:.5px}
+  .drawer-head .x{
+    width:28px;height:28px;border-radius:8px;border:1px solid var(--glass-line);
+    background:transparent;color:var(--txt);cursor:pointer;font-size:14px;
+    display:grid;place-items:center;
+  }
+  .drawer-body{padding:14px 16px 30px}
+  .d-sec{margin-bottom:22px}
+  .d-sec h3{
+    font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--dim);
+    margin-bottom:8px;display:flex;align-items:center;gap:6px;
+  }
+  .d-sec h3 .dot{width:6px;height:6px;border-radius:50%}
+  .d-sec.num h3 .dot{background:var(--acc)}
+  .d-sec.aad h3 .dot{background:var(--warn)}
+  .src{
+    background:var(--glass);border:1px solid var(--glass-line);
+    border-radius:10px;padding:9px 11px;margin-bottom:7px;
+    font-size:11px;line-height:1.5;
+    display:flex;justify-content:space-between;gap:8px;
+  }
+  .src .src-info{min-width:0;flex:1}
+  .src .src-name{font-weight:800;color:var(--txt)}
+  .src .src-tag{
+    font-size:9px;font-weight:700;color:var(--dim);
+    padding:1px 6px;border-radius:4px;background:var(--glass-strong);
+    border:1px solid var(--glass-line);margin-left:4px;
+  }
+  .src .src-url{
+    color:var(--dim2);font-family:Consolas,monospace;font-size:10px;
+    word-break:break-all;margin-top:3px;
+  }
+  .src .del{
+    flex-shrink:0;width:24px;height:24px;border-radius:7px;
+    border:1px solid var(--glass-line);background:transparent;
+    color:var(--err);cursor:pointer;font-size:12px;display:grid;place-items:center;
+  }
+  .src .del:hover{background:var(--err);color:#fff;border-color:var(--err)}
+  .add-form{
+    display:flex;flex-direction:column;gap:6px;margin-top:8px;
+    padding:10px;border:1px dashed var(--glass-line);border-radius:10px;
+  }
+  .add-form input, .add-form select{
+    background:var(--glass-strong);border:1px solid var(--glass-line);
+    border-radius:7px;color:var(--txt);padding:7px 9px;font-size:11px;outline:none;
+  }
+  .add-form input:focus, .add-form select:focus{border-color:var(--acc)}
+  .add-form .row{display:flex;gap:6px}
+  .add-form .row > *{flex:1;min-width:0}
+  .add-form button{
+    background:linear-gradient(135deg,var(--acc),var(--acc2));
+    color:#fff;border:none;border-radius:7px;padding:8px;
+    font-size:11px;font-weight:800;cursor:pointer;
+  }
+  .add-form .hint{font-size:9px;color:var(--dim);opacity:.8;line-height:1.4}
+  .add-form .hint code{font-family:Consolas,monospace;color:var(--acc)}
+
+  /* lock prompt */
+  .lock-mask{
+    position:fixed;inset:0;background:rgba(10,14,22,.45);
+    backdrop-filter:blur(4px);z-index:70;opacity:0;pointer-events:none;
+    transition:opacity .2s;display:grid;place-items:center;padding:20px;
+  }
+  .lock-mask.show{opacity:1;pointer-events:auto}
+  .lock{
+    background:var(--glass-strong);backdrop-filter:blur(24px) saturate(180%);
+    -webkit-backdrop-filter:blur(24px) saturate(180%);
+    border:1px solid var(--glass-line);border-radius:16px;
+    box-shadow:0 20px 50px rgba(0,0,0,.25);
+    padding:20px;width:min(340px,100%);
+    display:flex;flex-direction:column;gap:10px;
+    transform:translateY(6px);transition:transform .2s;
+  }
+  .lock-mask.show .lock{transform:translateY(0)}
+  .lock.shake{animation:shake .35s}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+  .lock h3{font-size:13px;font-weight:800;letter-spacing:.4px;text-align:center}
+  .lock p{font-size:10px;color:var(--dim);text-align:center;opacity:.85}
+  .lock input{
+    background:var(--glass);border:1px solid var(--glass-line);
+    border-radius:9px;color:var(--txt);padding:10px 12px;font-size:13px;
+    outline:none;text-align:center;letter-spacing:2px;font-weight:700;
+  }
+  .lock input:focus{border-color:var(--acc)}
+  .lock input.err{border-color:var(--err);box-shadow:0 0 0 3px #e5484d22}
+  .lock .btns{display:flex;gap:6px}
+  .lock .btns button{
+    flex:1;padding:10px;border-radius:9px;font-size:11px;font-weight:800;cursor:pointer;
+    border:1px solid var(--glass-line);background:var(--glass);color:var(--txt);
+  }
+  .lock .btns button.go{
+    background:linear-gradient(135deg,var(--acc),var(--acc2));
+    color:#fff;border:none;
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
+
+<div class="wrap">
+
+  <div class="bar">
+    <input id="n" type="tel" placeholder="number / aadhaar" maxlength="15" autocomplete="off" inputmode="numeric">
+    <button class="primary" id="go">Go</button>
+    <button class="icon" id="bulk-toggle" title="bulk">≡</button>
+    <button class="icon" id="settings-toggle" title="apis">☰</button>
+    <button class="icon" id="theme" title="theme">◐</button>
+  </div>
+
+  <div class="bulk" id="bulk">
+    <input id="bulk-in" placeholder="bulk numbers, comma separated">
+    <button id="bulk-run">Run</button>
+  </div>
+
+  <div class="status" id="status"></div>
+  <div class="hist" id="hist"></div>
+
+  <div id="out"></div>
+
+  <div class="wm">
+    <a href="https://wa.me/qr/6J6ALHE35FMMJ1" target="_blank" rel="noopener">Rahul sir</a>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- lock prompt -->
+<div class="lock-mask" id="lock-mask">
+  <div class="lock" id="lock-box">
+    <h3>ACCESS KEY</h3>
+    <p>enter key to open api manager</p>
+    <input id="lock-in" type="password" placeholder="• • • • • • •" autocomplete="off" />
+    <div class="btns">
+      <button id="lock-cancel">cancel</button>
+      <button class="go" id="lock-go">unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- settings drawer -->
+<div class="drawer-mask" id="mask"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h2>API MANAGER</h2>
+    <button class="x" id="drawer-x">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="d-sec num">
+      <h3><span class="dot"></span>NUMBER APIs</h3>
+      <div id="num-list"></div>
+      <div class="add-form">
+        <input id="nf-name" placeholder="name (e.g. naxupdate)" />
+        <div class="row">
+          <select id="nf-shape">
+            <option value="legacy">legacy</option>
+            <option value="mahesh">mahesh</option>
+          </select>
+        </div>
+        <input id="nf-url" placeholder="URL with {n} placeholder" />
+        <div class="hint">use <code>{n}</code> where the number goes. ex: <code>https://api.x.com/api?key=ABC&number={n}</code></div>
+        <button id="nf-add">+ ADD NUMBER SOURCE</button>
+      </div>
+    </div>
+
+    <div class="d-sec aad">
+      <h3><span class="dot"></span>AADHAAR APIs</h3>
+      <div id="aad-list"></div>
+      <div class="add-form">
+        <input id="af-name" placeholder="name (e.g. naxupdate)" />
+        <input id="af-url" placeholder="URL with {n} placeholder" />
+        <div class="hint">use <code>{n}</code> where the aadhaar goes. ex: <code>https://api.x.com/api/aadhaar?key=ABC&aadhaar={n}</code></div>
+        <button id="af-add">+ ADD AADHAAR SOURCE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ── ACCESS KEY ───────────────────────────────────────────
+  const ACCESS_KEY = 'RAHULJI';
+
+  // ── DEFAULT SOURCES ──────────────────────────────────────
+  const DEFAULT_NUMBER_SOURCES = [
+    { name:'naxupdate', shape:'legacy', buildUrl: n => `https://api.naxupdate.workers.dev/api/number-info?key=500-Compelet&number=${encodeURIComponent(n)}` },
+    { name:'mahesh', shape:'mahesh', buildUrl: n => `https://numbertoinfobymahesh.vercel.app/api?key=M4HESH&type=num&query=${encodeURIComponent(n)}` },
+    { name:'naxupdate', shape:'legacy', buildUrl: n => `https://api.naxupdate.workers.dev/api/number-info?key=30Day&number=${encodeURIComponent(n)}` },
+    { name:'naxupdate', shape:'legacy', buildUrl: n => `https://api.naxupdate.workers.dev/api/number-info?key=Noooooo&number=${encodeURIComponent(n)}` }
+  ];
+  const DEFAULT_AADHAAR_SOURCES = [
+    { name:'naxupdate', buildUrl: n => `https://api.naxupdate.workers.dev/api/aadhaar?key=500-Compelet&aadhaar=${encodeURIComponent(n)}` }
+  ];
+
+  const NUM_KEY = 'nl_number_sources';
+  const AAD_KEY = 'nl_aadhaar_sources';
+  const HIST_KEY = 'nl_hist';
+  const THEME_KEY = 'nl_theme';
+  const SESSION_KEY = 'nl_unlocked';
+
+  function loadSources(kind){
+    const storeKey = kind==='number' ? NUM_KEY : AAD_KEY;
+    const defs = kind==='number' ? DEFAULT_NUMBER_SOURCES : DEFAULT_AADHAAR_SOURCES;
+    let saved = null;
+    try{ saved = JSON.parse(localStorage.getItem(storeKey)||'null'); }catch(e){}
+    if(Array.isArray(saved) && saved.length){
+      return saved.map(s=>({
+        name: s.name || 'custom',
+        shape: s.shape || 'legacy',
+        urlTemplate: s.url || '',
+        buildUrl: n => (s.url||'').replace(/\{n\}/g, encodeURIComponent(n))
+      }));
+    }
+    return defs.map(d=>({
+      name: d.name,
+      shape: d.shape || 'legacy',
+      urlTemplate: null,
+      buildUrl: d.buildUrl
+    }));
+  }
+  function saveSources(kind, list){
+    const storeKey = kind==='number' ? NUM_KEY : AAD_KEY;
+    const raw = list.filter(s => s.urlTemplate).map(s => ({ name: s.name, shape: s.shape||'legacy', url: s.urlTemplate }));
+    try{ localStorage.setItem(storeKey, JSON.stringify(raw)); }catch(e){}
+  }
+
+  let NUMBER_SOURCES = loadSources('number');
+  let AADHAAR_SOURCES = loadSources('aadhaar');
+  const TRUECALLER_SOURCES = [
+    { name:'naxupdate', buildUrl: n => `https://api.naxupdate.workers.dev/api/truecaller?key=500-Compelet&query=${encodeURIComponent(n)}` }
+  ];
+
+  const inp = document.getElementById('n');
+  const btn = document.getElementById('go');
+  const out = document.getElementById('out');
+  const histEl = document.getElementById('hist');
+  const toastEl = document.getElementById('toast');
+  const bulkEl = document.getElementById('bulk');
+  const bulkIn = document.getElementById('bulk-in');
+  const statusEl = document.getElementById('status');
+  const maskEl = document.getElementById('mask');
+  const drawerEl = document.getElementById('drawer');
+  const numListEl = document.getElementById('num-list');
+  const aadListEl = document.getElementById('aad-list');
+
+  // lock elements
+  const lockMask = document.getElementById('lock-mask');
+  const lockBox = document.getElementById('lock-box');
+  const lockIn = document.getElementById('lock-in');
+  const lockCancel = document.getElementById('lock-cancel');
+  const lockGo = document.getElementById('lock-go');
+
+  let lastData = null;
+
+  const esc = s => (s==null?'':String(s))
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  let toastTimer;
+  function toast(msg, err){
+    toastEl.textContent = msg;
+    toastEl.className = 'toast show' + (err?' err':'');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{ toastEl.className = 'toast' + (err?' err':''); }, 1800);
+  }
+
+  function applyTheme(t){
+    document.documentElement.classList.toggle('dark', t==='dark');
+    try{ localStorage.setItem(THEME_KEY, t); }catch(e){}
+  }
+  const savedTheme = (function(){ try{ return localStorage.getItem(THEME_KEY)||'light'; }catch(e){ return 'light'; } })();
+  applyTheme(savedTheme);
+  document.getElementById('theme').addEventListener('click', ()=>{
+    applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+  });
+
+  document.getElementById('bulk-toggle').addEventListener('click', ()=>{
+    bulkEl.classList.toggle('show');
+  });
+
+  // ── LOCK FLOW ────────────────────────────────────────────
+  function isUnlocked(){
+    try{ return sessionStorage.getItem(SESSION_KEY) === '1'; }catch(e){ return false; }
+  }
+  function setUnlocked(){
+    try{ sessionStorage.setItem(SESSION_KEY, '1'); }catch(e){}
+  }
+  function showLock(){
+    lockIn.value = '';
+    lockIn.classList.remove('err');
+    lockMask.classList.add('show');
+    setTimeout(()=>lockIn.focus(), 80);
+  }
+  function hideLock(){
+    lockMask.classList.remove('show');
+  }
+  function tryUnlock(){
+    const v = (lockIn.value||'').trim().toUpperCase();
+    if(v === ACCESS_KEY){
+      setUnlocked();
+      hideLock();
+      openDrawer();
+    } else {
+      lockIn.classList.add('err');
+      lockBox.classList.remove('shake');
+      void lockBox.offsetWidth;
+      lockBox.classList.add('shake');
+      lockIn.value = '';
+      setTimeout(()=>lockIn.classList.remove('err'), 1200);
+    }
+  }
+
+  document.getElementById('settings-toggle').addEventListener('click', ()=>{
+    if(isUnlocked()){ openDrawer(); }
+    else { showLock(); }
+  });
+  lockCancel.addEventListener('click', hideLock);
+  lockGo.addEventListener('click', tryUnlock);
+  lockIn.addEventListener('keydown', e=>{ if(e.key==='Enter') tryUnlock(); });
+  lockMask.addEventListener('click', e=>{ if(e.target === lockMask) hideLock(); });
+
+  // ── DRAWER ───────────────────────────────────────────────
+  function openDrawer(){ maskEl.classList.add('show'); drawerEl.classList.add('show'); renderSourceLists(); }
+  function closeDrawer(){ maskEl.classList.remove('show'); drawerEl.classList.remove('show'); }
+  document.getElementById('drawer-x').addEventListener('click', closeDrawer);
+  maskEl.addEventListener('click', closeDrawer);
+
+  function renderSourceLists(){
+    renderList('number', numListEl);
+    renderList('aadhaar', aadListEl);
+  }
+  function renderList(kind, el){
+    const list = kind==='number' ? NUMBER_SOURCES : AADHAAR_SOURCES;
+    el.innerHTML = list.map((s, i) => {
+      const custom = !!s.urlTemplate;
+      const urlShow = custom ? esc(s.urlTemplate) : '<em style="color:var(--dim);font-style:italic">built-in</em>';
+      return `<div class="src">
+        <div class="src-info">
+          <div><span class="src-name">${esc(s.name)}</span>${custom?'<span class="src-tag">custom</span>':''}${s.shape && s.shape!=='legacy'?'<span class="src-tag">'+esc(s.shape)+'</span>':''}</div>
+          <div class="src-url">${urlShow}</div>
+        </div>
+        <button class="del" data-kind="${kind}" data-idx="${i}" title="delete">✕</button>
+      </div>`;
+    }).join('') || '<div class="msg" style="font-size:10px;padding:8px">none</div>';
+
+    el.querySelectorAll('.del').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const k = b.dataset.kind;
+        const i = parseInt(b.dataset.idx,10);
+        removeSource(k, i);
+      });
+    });
+  }
+  function removeSource(kind, idx){
+    if(kind==='number'){
+      NUMBER_SOURCES.splice(idx,1);
+      saveSources('number', NUMBER_SOURCES);
+      renderSourceLists();
+      toast('number source removed');
+    } else {
+      AADHAAR_SOURCES.splice(idx,1);
+      saveSources('aadhaar', AADHAAR_SOURCES);
+      renderSourceLists();
+      toast('aadhaar source removed');
+    }
+  }
+  function addNumberSource(){
+    const name = (document.getElementById('nf-name').value||'').trim() || 'custom';
+    const shape = document.getElementById('nf-shape').value || 'legacy';
+    const url = (document.getElementById('nf-url').value||'').trim();
+    if(!url || !url.includes('{n}')){ toast('URL must contain {n}', true); return; }
+    NUMBER_SOURCES.push({ name, shape, urlTemplate:url, buildUrl: n => url.replace(/\{n\}/g, encodeURIComponent(n)) });
+    saveSources('number', NUMBER_SOURCES);
+    document.getElementById('nf-name').value='';
+    document.getElementById('nf-url').value='';
+    renderSourceLists();
+    toast('number source added');
+  }
+  function addAadhaarSource(){
+    const name = (document.getElementById('af-name').value||'').trim() || 'custom';
+    const url = (document.getElementById('af-url').value||'').trim();
+    if(!url || !url.includes('{n}')){ toast('URL must contain {n}', true); return; }
+    AADHAAR_SOURCES.push({ name, shape:'legacy', urlTemplate:url, buildUrl: n => url.replace(/\{n\}/g, encodeURIComponent(n)) });
+    saveSources('aadhaar', AADHAAR_SOURCES);
+    document.getElementById('af-name').value='';
+    document.getElementById('af-url').value='';
+    renderSourceLists();
+    toast('aadhaar source added');
+  }
+  document.getElementById('nf-add').addEventListener('click', addNumberSource);
+  document.getElementById('af-add').addEventListener('click', addAadhaarSource);
+
+  // ── RENDERING ────────────────────────────────────────────
+  function val(v, mono){
+    const miss = (v==null||v===''||v==='null'||v==='NULLLLL');
+    const cls = 'v'+(mono?' mono':'')+(miss?' na':'');
+    return `<span class="${cls}">${miss?'—':esc(v)}</span>`;
+  }
+  function hl(v, mono, variant){
+    const miss = (v==null||v===''||v==='null');
+    if(miss) return `<span class="v na">—</span>`;
+    const cls = (mono?'mono ':'')+(variant||'');
+    return `<mark class="${cls.trim()}">${esc(v)}</mark>`;
+  }
+  function copyBtn(text){
+    if(text==null||text==='') return '';
+    return `<button class="cp" data-copy="${esc(text)}">copy</button>`;
+  }
+  function chainBtns(opts){
+    const btns = [];
+    if(opts.number) btns.push(`<button class="chain-num" data-number="${esc(opts.number)}">${esc(opts.number)} →</button>`);
+    if(opts.aadhaar) btns.push(`<button class="chain-aadhaar" data-aadhaar="${esc(opts.aadhaar)}">${esc(opts.aadhaar)} →</button>`);
+    if(opts.truecaller) btns.push(`<button class="chain-tc" data-truecaller="${esc(opts.truecaller)}">tc ${esc(opts.truecaller)} →</button>`);
+    if(!btns.length) return '';
+    return `<div class="aadhaar-chain">${btns.join('')}</div>`;
+  }
+  function secHead(kind, count){
+    const label = {number:'NUMBER', aadhaar:'AADHAAR', truecaller:'TRUECALLER'}[kind] || kind.toUpperCase();
+    const cnt = (count!=null) ? `<span class="sec-count">${count}</span>` : '';
+    return `<div class="sec-head"><span class="sec-badge ${kind}">${label}</span>${cnt}</div>`;
+  }
+
+  function normalizeNumRecord(r){
+    return {
+      name: r.name || [r.first_name,r.middle_name,r.last_name].filter(Boolean).join(' ') || 'Unknown',
+      mobile: r.mobile || '',
+      alt_mobile: r.alt || r.alternate_mobile || r.alt_mobile || '',
+      father_name: r.fname || r.father_name || '',
+      aadhaar: r.aadhar || r.aadhaar || '',
+      email: r.email || '',
+      circle: r.circle || '',
+      address: (r.address||'').replace(/!/g,', ').replace(/,\s*,/g,',').replace(/\s+/g,' ').trim()
+    };
+  }
+
+  function renderNumberRecords(list){
+    if(!list || !list.length) return '';
+    return list.map(raw=>{
+      const r = normalizeNumRecord(raw);
+      return `<div class="rec">
+        <div class="name">
+          <div class="name-l"><span class="name-t">${esc(r.name)}</span></div>
+          <div class="name-r">${copyBtn(r.name)}</div>
+        </div>
+        <div class="line"><span class="k">mobile</span> ${hl(r.mobile,1)}</div>
+        <div class="line"><span class="k">alt</span> ${val(r.alt_mobile,1)}</div>
+        <div class="line"><span class="k">father</span> ${val(r.father_name)}</div>
+        <div class="line"><span class="k">aadhaar</span> ${hl(r.aadhaar,1,'aadhaar-hl')}</div>
+        <div class="line"><span class="k">email</span> ${val(r.email)}</div>
+        <div class="line"><span class="k">circle</span> ${val(r.circle)}</div>
+        <div class="line"><span class="k">address</span> ${val(r.address)}</div>
+        ${chainBtns({aadhaar:r.aadhaar, truecaller:r.mobile})}
+      </div>`;
+    }).join('');
+  }
+
+  function renderAadhaarRecords(list){
+    if(!list || !list.length) return '';
+    return list.map(raw=>{
+      const r = normalizeNumRecord(raw);
+      return `<div class="rec aadhaar">
+        <div class="name">
+          <div class="name-l"><span class="name-t">${esc(r.name)}</span></div>
+          <div class="name-r">${copyBtn(r.name)}</div>
+        </div>
+        <div class="line"><span class="k">mobile</span> ${hl(r.mobile,1)}</div>
+        <div class="line"><span class="k">alt</span> ${val(r.alt_mobile,1)}</div>
+        <div class="line"><span class="k">father</span> ${val(r.father_name)}</div>
+        <div class="line"><span class="k">aadhaar</span> ${hl(r.aadhaar,1,'aadhaar-hl')}</div>
+        <div class="line"><span class="k">circle</span> ${val(r.circle)}</div>
+        <div class="line"><span class="k">address</span> ${val(r.address)}</div>
+        ${chainBtns({number:r.mobile, truecaller:r.mobile})}
+      </div>`;
+    }).join('');
+  }
+
+  function renderTruecallerBlock(obj){
+    if(!obj || !Object.keys(obj).length) return '';
+    const priority = ['Owner Name','Number','Owner Address','Mobile State','Hometown','SIM card','Connection','Country'];
+    const inner = Object.keys(obj).map(k=>{
+      const v = obj[k];
+      const isPriority = priority.includes(k);
+      const mono = /IMEI|IP address|MAC|Number|Tracker Id/i.test(k);
+      const valueHtml = (v==null||v===''||v==='null')
+        ? `<span class="v na">—</span>`
+        : (isPriority ? hl(v, mono, 'tc-hl') : `<span class="v${mono?' mono':''}">${esc(v)}</span>`);
+      return `<div class="kv"><span class="k">${esc(k)}</span> ${valueHtml}</div>`;
+    }).join('');
+    const num = obj['Number'] || '';
+    return `<div class="rec tc">${inner}${num ? chainBtns({number:num, truecaller:num}) : ''}</div>`;
+  }
+
+  function setStatus(list){
+    statusEl.innerHTML = list.map(s=>{
+      const cls = 'st ' + s.state;
+      return `<span class="${cls}"><span class="sdot"></span>${esc(s.label)}</span>`;
+    }).join('');
+  }
+
+  // ── FETCHERS ─────────────────────────────────────────────
+  async function fetchNumber(num){
+    let lastErr = null;
+    for(let i=0;i<NUMBER_SOURCES.length;i++){
+      const s = NUMBER_SOURCES[i];
+      try{
+        const r = await fetch(s.buildUrl(num), {headers:{Accept:'application/json'}});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const j = await r.json();
+        let list = [];
+        if(s.shape === 'mahesh'){
+          if(j && Array.isArray(j.results)) list = j.results;
+          else if(j && Array.isArray(j.result)) list = j.result;
+          else if(j && j.success === false) throw new Error(j.message || 'mahesh failed');
+        } else {
+          list = (j.data && j.data.result) || (Array.isArray(j.results) ? j.results : []);
+          if(!list.length && j.success === false) throw new Error(j.message || 'failed');
+        }
+        if(!list.length) throw new Error('empty');
+        return { list, raw:j, source:s.name, ok:true };
+      }catch(err){ lastErr = err; }
+    }
+    throw lastErr || new Error('all number sources failed');
+  }
+
+  async function fetchAadhaar(num){
+    let lastErr = null;
+    for(let i=0;i<AADHAAR_SOURCES.length;i++){
+      const s = AADHAAR_SOURCES[i];
+      try{
+        const r = await fetch(s.buildUrl(num), {headers:{Accept:'application/json'}});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const j = await r.json();
+        if(j.success === false) throw new Error(j.message || 'aadhaar failed');
+        return { list:(j.data && j.data.result) || [], raw:j, ok:true };
+      }catch(err){ lastErr = err; }
+    }
+    throw lastErr || new Error('all aadhaar sources failed');
+  }
+
+  async function fetchTruecaller(num){
+    let lastErr = null;
+    for(let i=0;i<TRUECALLER_SOURCES.length;i++){
+      const s = TRUECALLER_SOURCES[i];
+      try{
+        const r = await fetch(s.buildUrl(num), {headers:{Accept:'application/json'}});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const j = await r.json();
+        if(j.success === false) throw new Error(j.message || 'truecaller failed');
+        return { tcData:(j.data && j.data.data) || {}, raw:j, ok:true };
+      }catch(err){ lastErr = err; }
+    }
+    throw lastErr || new Error('all truecaller sources failed');
+  }
+
+  // ── HISTORY ──────────────────────────────────────────────
+  function getHist(){ try{ return JSON.parse(localStorage.getItem(HIST_KEY)||'[]'); }catch(e){ return []; } }
+  function setHist(a){ try{ localStorage.setItem(HIST_KEY, JSON.stringify(a.slice(0,8))); }catch(e){} renderHist(); }
+  function addHist(num){
+    const h = getHist().filter(x=> (typeof x==='string'?x:x.n)!==num );
+    h.unshift(num);
+    setHist(h);
+  }
+  function renderHist(){
+    const h = getHist().map(x=> typeof x==='string' ? x : x.n);
+    histEl.innerHTML = h.map(n=>`<span class="chip" data-n="${esc(n)}">${esc(n)}</span>`).join('');
+  }
+  histEl.addEventListener('click', e=>{
+    const c = e.target.closest('.chip');
+    if(!c) return;
+    inp.value = c.dataset.n;
+    runSingle();
+  });
+
+  function renderUnified(d){
+    let html = '';
+    if(d.number && d.number.ok && d.number.list.length){
+      html += secHead('number', d.number.list.length);
+      html += renderNumberRecords(d.number.list);
+    }
+    if(d.aadhaar && d.aadhaar.ok && d.aadhaar.list.length){
+      html += secHead('aadhaar', d.aadhaar.list.length);
+      html += renderAadhaarRecords(d.aadhaar.list);
+    }
+    if(d.truecaller && d.truecaller.ok && d.truecaller.tcData && Object.keys(d.truecaller.tcData).length){
+      html += secHead('truecaller', null);
+      html += renderTruecallerBlock(d.truecaller.tcData);
+    }
+    return html || '<div class="msg">no data</div>';
+  }
+
+  document.addEventListener('click', async e=>{
+    const ab = e.target.closest('button[data-aadhaar]');
+    if(ab){ inp.value = ab.dataset.aadhaar; runSingle(); return; }
+    const nb = e.target.closest('button[data-number]');
+    if(nb){ inp.value = nb.dataset.number; runSingle(); return; }
+    const tb = e.target.closest('button[data-truecaller]');
+    if(tb){ inp.value = tb.dataset.truecaller; runSingle(); return; }
+    const b = e.target.closest('.cp');
+    if(b){
+      const t = b.dataset.copy;
+      const done = ()=>{ const o=b.textContent; b.textContent='ok'; b.classList.add('done'); setTimeout(()=>{b.textContent=o;b.classList.remove('done')},1000); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(t).then(done).catch(()=>{});
+      }else{
+        const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();
+        try{document.execCommand('copy');done()}catch(_){}
+        document.body.removeChild(ta);
+      }
+    }
+  });
+
+  async function fetchAll(num){
+    setStatus([
+      {label:'number', state:'loading'},
+      {label:'aadhaar', state:'loading'},
+      {label:'truecaller', state:'loading'}
+    ]);
+    out.innerHTML = '<div class="sk"><div class="ln"></div><div class="ln"></div><div class="ln"></div></div>';
+
+    const tasks = [
+      fetchNumber(num).then(r=>({type:'number', result:r})).catch(err=>({type:'number', result:{ok:false, error:err.message, list:[]}})),
+      fetchAadhaar(num).then(r=>({type:'aadhaar', result:r})).catch(err=>({type:'aadhaar', result:{ok:false, error:err.message, list:[]}})),
+      fetchTruecaller(num).then(r=>({type:'truecaller', result:r})).catch(err=>({type:'truecaller', result:{ok:false, error:err.message, tcData:{}}}))
+    ];
+
+    const results = await Promise.all(tasks);
+    const d = { number:null, aadhaar:null, truecaller:null };
+    const statusUpdate = [];
+    results.forEach(({type, result})=>{
+      d[type] = result;
+      let state = 'empty';
+      if(!result.ok) state = 'err';
+      else if(type==='number' && result.list.length) state = 'ok';
+      else if(type==='aadhaar' && result.list.length) state = 'ok';
+      else if(type==='truecaller' && result.tcData && Object.keys(result.tcData).length) state = 'ok';
+      statusUpdate.push({label:type, state});
+    });
+    setStatus(statusUpdate);
+    return d;
+  }
+
+  async function runSingle(){
+    const num = inp.value.replace(/\D/g,'');
+    if(!num){ out.innerHTML = '<div class="msg err">number ya aadhaar daal</div>'; return; }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span>';
+    try{
+      const d = await fetchAll(num);
+      lastData = d;
+      addHist(num);
+      out.innerHTML = renderUnified(d);
+    }catch(e){
+      out.innerHTML = `<div class="msg err">${esc(e.message)}</div>`;
+      toast('failed', true);
+    }finally{
+      btn.disabled = false;
+      btn.textContent = 'Go';
+    }
+  }
+
+  async function runBulk(){
+    const raw = bulkIn.value.trim();
+    if(!raw){ toast('enter numbers', true); return; }
+    const nums = raw.split(/[\s,]+/).map(s=>s.replace(/\D/g,'')).filter(Boolean).slice(0,10);
+    if(!nums.length){ toast('no valid numbers', true); return; }
+    bulkEl.classList.remove('show');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span>';
+    out.innerHTML = '';
+    lastData = null;
+    for(let i=0;i<nums.length;i++){
+      const num = nums[i];
+      const wrapDiv = document.createElement('div');
+      wrapDiv.innerHTML = `<div class="msg" style="padding:6px 0;text-align:left">lookup ${esc(num)} …</div>`;
+      out.appendChild(wrapDiv);
+      try{
+        const d = await fetchAll(num);
+        addHist(num);
+        wrapDiv.innerHTML = `<div class="sec-head"><span class="sec-badge number">${esc(num)}</span></div>` + renderUnified(d);
+        lastData = d;
+      }catch(e){
+        wrapDiv.innerHTML = `<div class="msg err" style="text-align:left">${esc(num)}: ${esc(e.message)}</div>`;
+      }
+    }
+    btn.disabled = false;
+    btn.textContent = 'Go';
+    toast('done');
+  }
+
+  document.getElementById('bulk-run').addEventListener('click', runBulk);
+  btn.addEventListener('click', runSingle);
+  inp.addEventListener('keydown', e => { if(e.key==='Enter') runSingle(); });
+
+  renderHist();
+
+  (function(){
+    const qp = new URLSearchParams(location.search).get('number');
+    if(qp){
+      const n = qp.replace(/\D/g,'');
+      if(n){ inp.value = n; runSingle(); }
+    }
+  })();
+})();
+</script>
+</body>
+</html>
